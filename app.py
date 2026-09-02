@@ -292,16 +292,56 @@ def logout():
 def shelter_register():
     if request.method == 'POST':
         shelter_name = request.form.get('name', '').strip()
+        shelter_address = request.form.get('address', '').strip()
+        shelter_capacity = request.form.get('capacity', '').strip()
+        selected_equipment = request.form.getlist('equipment')
+        other_equipment = request.form.get('equipment_other', '').strip()
+        if other_equipment:
+            selected_equipment.append(other_equipment)
+        shelter_equipment = ', '.join(selected_equipment)
 
-        if not shelter_name:
+        selected_disasters = request.form.getlist('disaster')
+        other_disaster = request.form.get('disaster_other', '').strip()
+        if other_disaster:
+            selected_disasters.append(other_disaster)
+        shelter_disaster = ', '.join(selected_disasters)
+        shelter_image = request.form.get('image', '').strip()
+
+        uploaded_file = request.files.get('upload_image')
+        if uploaded_file and uploaded_file.filename:
+            upload_dir = os.path.join(APP_DIR, 'static', 'uploads')
+            os.makedirs(upload_dir, exist_ok=True)
+            safe_name = uploaded_file.filename
+            file_path = os.path.join(upload_dir, safe_name)
+            uploaded_file.save(file_path)
+            shelter_image = f"/static/uploads/{safe_name}"
+
+        required_fields = {
+            '避難所名': shelter_name,
+            '避難所住所': shelter_address,
+            '避難所許容人数': shelter_capacity,
+            '避難所設備詳細': shelter_equipment,
+            '対応災害': shelter_disaster,
+        }
+
+        missing_field = next((label for label, value in required_fields.items() if not value), None)
+        if missing_field:
             return render_template(
                 'shelter_register.html',
                 error=True,
-                message='避難所名を入力してください。'
+                message=f'{missing_field}を入力してください。'
             )
 
         shelter_id = max((s.get('id', 0) for s in shelters), default=0) + 1
-        shelters.append({'id': shelter_id, 'name': shelter_name})
+        shelters.append({
+            'id': shelter_id,
+            'name': shelter_name,
+            'address': shelter_address,
+            'capacity': shelter_capacity,
+            'equipment': shelter_equipment,
+            'disaster': shelter_disaster,
+            'image': shelter_image,
+        })
         save_shelters()
 
         return render_template(

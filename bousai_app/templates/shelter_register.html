@@ -13,11 +13,243 @@
   <p>{{ message }}</p>
 {% endif %}
 
-<form method="POST">
+<style>
+  .required-tag {
+    display: inline-block;
+    background: #d93025;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  form {
+    font-size: 16px;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 12px 8px 20px;
+  }
+
+  form p {
+    margin: 20px 0;
+  }
+
+  label.field-label {
+    display: inline-block;
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    margin-bottom: 6px;
+  }
+
+  .option-label {
+    display: inline-block;
+    margin-right: 16px;
+    font-weight: 400;
+    text-decoration: none;
+  }
+
+  input[type="text"],
+  input[type="url"],
+  input[type="file"],
+  textarea {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  input[type="checkbox"] {
+    transform: scale(1.15);
+    margin-right: 6px;
+  }
+
+  .zipcode-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .zipcode-row input {
+    width: 160px;
+    max-width: 100%;
+  }
+
+  .zip-search-btn {
+    background: #e7f7ff;
+    color: #0a5ea8;
+    border: 1px solid #9ed9f8;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  button[type="submit"] {
+    display: inline-block;
+    background: linear-gradient(180deg, #66d9ff, #33b9ea);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 28px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(51, 185, 234, 0.35);
+  }
+
+  button[type="submit"]:hover {
+    background: linear-gradient(180deg, #4ad1ff, #22aee6);
+  }
+</style>
+
+<form method="POST" enctype="multipart/form-data">
   <p>
-    <label for="name">避難所名（必須）</label><br>
-    <input type="text" id="name" name="name">
+    <label class="field-label" for="name"><span class="required-tag">必須</span> 避難所名</label><br>
+    <input type="text" id="name" name="name" style="width: 100%; max-width: 500px;" required>
   </p>
+
+  <p>
+    <label class="field-label" for="address"><span class="required-tag">必須</span> 避難所住所</label><br>
+    <div class="zipcode-row">
+      <input type="text" id="zipcode" name="zipcode" placeholder="郵便番号" maxlength="7">
+      <button type="button" class="zip-search-btn" id="zipcodeSearchBtn">住所検索</button>
+    </div>
+    <input type="text" id="address" name="address" style="width: 100%; max-width: 500px;" required>
+  </p>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const zipcodeInput = document.getElementById('zipcode');
+      const addressInput = document.getElementById('address');
+      const searchBtn = document.getElementById('zipcodeSearchBtn');
+
+      if (!zipcodeInput || !addressInput || !searchBtn) return;
+
+      searchBtn.addEventListener('click', function () {
+        const zip = zipcodeInput.value.replace(/[^0-9]/g, '');
+        if (!zip) {
+          addressInput.focus();
+          return;
+        }
+
+        fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data && data.results && data.results.length > 0) {
+              const result = data.results[0];
+              addressInput.value = `${result.address1}${result.address2}${result.address3}`;
+            } else {
+              addressInput.value = '';
+              addressInput.placeholder = '該当する住所が見つかりませんでした';
+            }
+          })
+          .catch(() => {
+            addressInput.value = '';
+            addressInput.placeholder = '住所検索に失敗しました';
+          });
+      });
+    });
+  </script>
+
+  <p>
+    <label class="field-label" for="capacity"><span class="required-tag">必須</span> 避難所許容人数</label><br>
+    <input type="text" id="capacity" name="capacity" style="width: 100%; max-width: 500px;" required>
+  </p>
+
+  <p>
+    <label class="field-label"><span class="required-tag">必須</span> 避難所設備詳細 <span style="color: #666; font-size: 13px;">(複数選択可)</span></label><br>
+    <label class="option-label">
+      <input type="checkbox" name="equipment" value="バリアフリー設備"> バリアフリー設備
+    </label>
+    <label class="option-label">
+      <input type="checkbox" name="equipment" value="ペット対応設備"> ペット対応設備
+    </label>
+    <label class="option-label">
+      <input type="checkbox" name="equipment" value="多言語対応"> 多言語対応
+    </label>
+    <label class="option-label">
+      <input type="checkbox" name="equipment" value="なし"> なし
+    </label>
+    <label class="option-label">
+      <input type="checkbox" name="equipment" id="equipment_other_checkbox" value="その他"> その他
+    </label>
+    <div id="equipment_other_input" style="display: none; margin-top: 8px;">
+      <input type="text" name="equipment_other" placeholder="その他の設備を入力" style="width: 100%; max-width: 500px;">
+    </div>
+  </p>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const otherCheckbox = document.getElementById('equipment_other_checkbox');
+      const otherInput = document.getElementById('equipment_other_input');
+
+      if (!otherCheckbox || !otherInput) return;
+
+      function updateOtherInput() {
+        otherInput.style.display = otherCheckbox.checked ? 'block' : 'none';
+      }
+
+      otherCheckbox.addEventListener('change', updateOtherInput);
+      updateOtherInput();
+    });
+  </script>
+
+  <p>
+    <label class="field-label"><span class="required-tag">必須</span> 対応災害 <span style="color: #666; font-size: 13px;">(複数選択可)</span></label><br>
+    <label class="option-label">
+      <input type="checkbox" name="disaster" value="地震"> 地震
+    </label>
+    <label class="option-label">
+      <input type="checkbox" name="disaster" value="津波"> 津波
+    </label>
+    <label class="option-label">
+      <input type="checkbox" name="disaster" value="土砂災害"> 土砂災害
+    </label>
+    <label class="option-label">
+      <input type="checkbox" name="disaster" value="河川氾濫"> 河川氾濫
+    </label>
+    <label class="option-label">
+      <input type="checkbox" name="disaster" value="積雪災害"> 積雪災害
+    </label>
+    <label class="option-label">
+      <input type="checkbox" name="disaster" value="台風"> 台風
+    </label>
+    <label class="option-label">
+      <input type="checkbox" name="disaster" id="disaster_other_checkbox" value="その他"> その他
+    </label>
+    <div id="disaster_other_input" style="display: none; margin-top: 8px;">
+      <input type="text" name="disaster_other" placeholder="その他の災害を入力" style="width: 100%; max-width: 500px;">
+    </div>
+  </p>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const otherCheckbox = document.getElementById('disaster_other_checkbox');
+      const otherInput = document.getElementById('disaster_other_input');
+
+      if (!otherCheckbox || !otherInput) return;
+
+      function updateOtherInput() {
+        otherInput.style.display = otherCheckbox.checked ? 'block' : 'none';
+      }
+
+      otherCheckbox.addEventListener('change', updateOtherInput);
+      updateOtherInput();
+    });
+  </script>
+
+  <p>
+    <label class="field-label" for="image">避難所画像URL または 画像ファイル</label><br>
+    <input type="url" id="image" name="image" style="width: 100%; max-width: 500px;" placeholder="https://example.com/image.jpg">
+    <br>
+    <input type="file" id="upload_image" name="upload_image" accept="image/*" style="margin-top: 8px;">
+  </p>
+
   <p><button type="submit">登録</button></p>
 </form>
 {% endblock %}
