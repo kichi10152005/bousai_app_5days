@@ -4,31 +4,46 @@
   <meta charset="utf-8">
   <title>{% block title %}防災アプリ{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
 </head>
 <body>
-  <!-- ヘッダー -->
-  <h1>防災アプリ</h1>
+  <header class="topbar">
+    <div class="brand">防災アプリ</div>
+    <button class="menu-button" id="menuButton" aria-label="メニュー" aria-expanded="false" aria-controls="siteNav">☰</button>
+  </header>
 
-  <!-- ナビゲーション -->
-  <nav>
-    <a href="/">ホーム</a> |
-    <a href="/shelter_search">避難所検索</a> |
-    <a href="/shelter_register">避難所登録</a> |
+  <nav class="nav" id="siteNav">
+    <a href="/">ホーム</a>
+    <a href="/shelter_search">避難所検索</a>
+    <a href="/shelter_register">避難所登録</a>
     <a href="/board">指示・発信ボード</a>
-    ｜
     {% if session.logged_in %}
-      ログイン中{% if session.username %}（{{ session.username }}）{% endif %}
+      <span class="user-status">ログイン中{% if session.username %}（{{ session.username }}）{% endif %}</span>
       <a href="/logout">ログアウト</a>
     {% else %}
-      未ログイン
+      <span class="user-status">未ログイン</span>
       <a href="/login">ログイン</a>
     {% endif %}
   </nav>
-  <hr>
 
-  <main>
-    <!-- ここに子テンプレートの content が入る -->
+  <main class="page-wrap">
     {% block content %}{% endblock %}
   </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const menuButton = document.getElementById('menuButton');
+      const siteNav = document.getElementById('siteNav');
+
+      if (!menuButton || !siteNav) {
+        return;
+      }
+
+      menuButton.addEventListener('click', function () {
+        const isOpen = siteNav.classList.toggle('open');
+        menuButton.setAttribute('aria-expanded', String(isOpen));
+      });
+    });
+  </script>
 </body>
 </html>
