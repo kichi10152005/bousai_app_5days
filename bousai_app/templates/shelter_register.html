@@ -109,17 +109,17 @@
 
 <form method="POST" enctype="multipart/form-data">
   <p>
-    <label class="field-label" for="name"><span class="required-tag">必須</span> 避難所名</label><br>
-    <input type="text" id="name" name="name" style="width: 100%; max-width: 500px;" required>
+    <label class="field-label" for="name"><span class="required-tag">必須</span> 避難所名 <span style="color: #666; font-size: 13px;">（例：NTTデータ関西）</span></label><br>
+    <input type="text" id="name" name="name" placeholder="NTTデータ関西" style="width: 100%; max-width: 500px;" required>
   </p>
 
   <p>
-    <label class="field-label" for="address"><span class="required-tag">必須</span> 避難所住所</label><br>
+    <label class="field-label" for="address"><span class="required-tag">必須</span> 避難所住所 <span style="color: #666; font-size: 13px;">（例：大阪府大阪市北区堂島3-1-21）</span></label><br>
     <div class="zipcode-row">
       <input type="text" id="zipcode" name="zipcode" placeholder="郵便番号" maxlength="7">
       <button type="button" class="zip-search-btn" id="zipcodeSearchBtn">住所検索</button>
     </div>
-    <input type="text" id="address" name="address" style="width: 100%; max-width: 500px;" required>
+    <input type="text" id="address" name="address" placeholder="大阪府大阪市北区堂島3-1-21" style="width: 100%; max-width: 500px;" required>
   </p>
 
   <script>
@@ -157,8 +157,8 @@
   </script>
 
   <p>
-    <label class="field-label" for="capacity"><span class="required-tag">必須</span> 避難所許容人数</label><br>
-    <input type="text" id="capacity" name="capacity" style="width: 100%; max-width: 500px;" required>
+    <label class="field-label" for="capacity"><span class="required-tag">必須</span> 避難所許容人数 <span style="color: #666; font-size: 13px;">（例：100人）</span></label><br>
+    <input type="text" id="capacity" name="capacity" placeholder="100人" style="width: 100%; max-width: 500px;" required>
   </p>
 
   <p>

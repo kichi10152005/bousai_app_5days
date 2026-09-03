@@ -86,5 +86,23 @@
     "equipment": "ペット対応設備",
     "disaster": "津波",
     "image": ""
+  },
+  {
+    "id": 15,
+    "name": "NTTデータ",
+    "address": "大阪府大阪市北区堂島3-1-21",
+    "capacity": "約１０００人",
+    "equipment": "バリアフリー設備, 多言語対応",
+    "disaster": "地震, 津波, 土砂災害",
+    "image": ""
+  },
+  {
+    "id": 16,
+    "name": "NTTデータ関西",
+    "address": "大阪府大阪市北区堂島3-1-21",
+    "capacity": "100人",
+    "equipment": "バリアフリー設備, 多言語対応",
+    "disaster": "地震, 津波, 土砂災害",
+    "image": ""
   }
 ]
