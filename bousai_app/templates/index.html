@@ -1,40 +1,67 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="home-panel shelter-map-panel">
-  <div class="section-title">
-    <span class="icon">📍</span>
-    <span>青森市 避難所・災害マップ</span>
-  </div>
-  <div id="shelterMap" class="map-box"></div>
-</div>
-
-<div class="home-panel weather-panel">
-  <div class="weather-header">
-    <div class="section-title weather-title">
-      <span class="icon weather-icon">☁️</span>
-      <span>青森市 気象警報・注意報</span>
+<div class="home-dashboard">
+  <div class="home-panel shelter-map-panel">
+    <div class="section-title">
+      <span class="icon">📍</span>
+      <span>青森市 避難所・災害マップ</span>
     </div>
-    <span class="refresh-badge">↻ 10分おき自動更新</span>
+    <div id="shelterMap" class="map-box"></div>
+    <form class="resident-report-form" method="post" action="/resident_report">
+      <label for="residentReport">住民からの情報</label>
+      <label for="residentDistrict">対象地区</label>
+      <select id="residentDistrict" name="district" required>
+        <option value="">選択してください</option>
+        {% for item in ['東地区', '中心地区', '南地区', '西地区', '浪岡地区'] %}<option value="{{ item }}">{{ item }}</option>{% endfor %}
+      </select>
+      <label for="residentDisasterType">災害の種類</label>
+      <select id="residentDisasterType" name="disaster_type" required>
+        <option value="">選択してください</option>
+        {% for item in ['地震', '河川氾濫', '津波', '積雪災害', '土砂災害', '台風', 'その他'] %}<option value="{{ item }}">{{ item }}</option>{% endfor %}
+      </select>
+      <textarea id="residentReport" name="content" rows="3" maxlength="1000" placeholder="地域の状況や必要な支援を入力してください" required></textarea>
+      <button type="submit">情報を送信</button>
+    </form>
   </div>
 
-  <div id="weatherContent" class="weather-content">
-    <p>読み込み中...</p>
-  </div>
-</div>
+  <div class="home-side-panels">
+    <div class="home-panel weather-panel">
+      <div class="weather-header">
+        <div class="section-title weather-title">
+          <span class="icon weather-icon">☁️</span>
+          <span>青森市 気象警報・注意報</span>
+        </div>
+        <span class="refresh-badge">↻ 10分おき自動更新</span>
+      </div>
 
-<div class="home-panel notices-panel">
-  <div class="section-title"><span class="icon">📢</span><span>住民向けのお知らせ</span></div>
-  {% if resident_notices %}
-    <ul class="notice-list">
-      {% for notice in resident_notices %}
-        <li><strong>{{ notice.title or 'お知らせ' }}</strong><span>{{ notice.content }}</span></li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="empty-state">現在、住民向けのお知らせはありません。</p>
-  {% endif %}
-  <a class="action-link" href="/board">発信ボードを確認する</a>
+      <div id="weatherContent" class="weather-content">
+        <p>読み込み中...</p>
+      </div>
+    </div>
+
+    <div class="home-panel notices-panel">
+      <div class="section-title"><span class="icon">📢</span><span>住民向けのお知らせ</span></div>
+      {% if resident_notices %}
+        <ul class="notice-list">
+          {% for notice in resident_notices %}
+              <li>
+                <strong>{{ notice.title or 'お知らせ' }}</strong>
+                <span>{{ notice.content }}</span>
+                <dl class="notice-details">
+                  <div><dt>重要度</dt><dd>{{ notice.priority or '未設定' }}</dd></div>
+                  <div><dt>対象地区</dt><dd>● {{ notice.district or '未設定' }}</dd></div>
+                  <div><dt>日時</dt><dd>{{ notice.posted_at or notice.created_at or '未設定' }}</dd></div>
+                </dl>
+              </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-state">現在、住民向けのお知らせはありません。</p>
+      {% endif %}
+      <a class="action-link" href="/board">発信ボードを確認する</a>
+    </div>
+  </div>
 </div>
 
 <div class="home-actions">

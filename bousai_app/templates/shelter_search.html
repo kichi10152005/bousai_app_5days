@@ -20,6 +20,14 @@
 		gap: 28px;
 	}
 
+	.search-columns > div:first-child {
+		order: 2;
+	}
+
+	.search-columns > div:last-child {
+		order: 1;
+	}
+
 	.search-group {
 		margin-bottom: 24px;
 	}
@@ -51,8 +59,12 @@
 	}
 
 	.search-map {
-		height: 250px;
-		border: 1px solid #b7c7d4;
+		width: 100%;
+		height: 440px;
+		border-radius: 14px;
+		overflow: hidden;
+		border: 1px solid #dfeaf1;
+		background: #dfeef7;
 	}
 
 	.search-actions {
@@ -97,6 +109,11 @@
 			grid-template-columns: 1fr;
 			gap: 0;
 		}
+
+		.search-columns > div:first-child,
+		.search-columns > div:last-child {
+			order: initial;
+		}
 	}
 </style>
 
@@ -108,31 +125,23 @@
 				<input class="search-name" type="text" name="name" value="{{ conditions.name }}" placeholder="（自由入力）">
 			</div>
 			<div class="search-group">
-				<h3>どこから探すか</h3>
+				<h3>避難所設備条件</h3>
 				<div class="choice-grid">
-					{% for option in ['現在地', '自宅'] %}
-						<label><input type="radio" name="location" value="{{ option }}" {% if conditions.location == option %}checked{% endif %}>{{ option }}</label>
+					{% for option in ['バリアフリー', 'ペット対応', '多言語対応', 'その他'] %}
+						<label><input type="checkbox" name="equipment" value="{{ option }}" {% if option in conditions.equipment %}checked{% endif %}>{{ option }}</label>
 					{% endfor %}
 				</div>
 			</div>
 			<div class="search-group">
-				<h3>避難所設備条件</h3>
+				<h3>対応している災害</h3>
 				<div class="choice-grid">
-					{% for option in ['バリアフリー', 'ペット対応', '多言語対応', 'なし', 'その他'] %}
-						<label><input type="checkbox" name="equipment" value="{{ option }}" {% if option in conditions.equipment %}checked{% endif %}>{{ option }}</label>
+					{% for option in ['地震', '河川氾濫', '津波', '積雪災害', '土砂災害', '台風', 'その他'] %}
+						<label><input type="checkbox" name="hazard" value="{{ option }}" {% if option in conditions.hazard %}checked{% endif %}>{{ option }}</label>
 					{% endfor %}
 				</div>
 			</div>
 		</div>
 		<div>
-			<div class="search-group">
-				<h3>対応している災害</h3>
-				<div class="choice-grid">
-					{% for option in ['地震', '河川氾濫', '津波', '積雪災害', '土砂災害', '台風'] %}
-						<label><input type="checkbox" name="hazard" value="{{ option }}" {% if option in conditions.hazard %}checked{% endif %}>{{ option }}</label>
-					{% endfor %}
-				</div>
-			</div>
 			<div class="search-group">
 				<h3>地図表示</h3>
 				<div id="searchMap" class="search-map"></div>
@@ -170,6 +179,118 @@ document.addEventListener('DOMContentLoaded', function () {
 	L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		attribution: '© OpenStreetMap contributors'
 	}).addTo(map);
+	const shelters = {{ shelters | tojson }};
+	let currentWarnings = [];
+
+	function warningFillColor() {
+		if (currentWarnings.some(warning => ['32', '33', '34', '35', '36', '37', '38', '39'].includes(warning.code))) return '#263238';
+		if (currentWarnings.some(warning => ['43', '48', '49'].includes(warning.code))) return '#8e44ad';
+		if (currentWarnings.some(warning => warning.severity === '大')) return '#e45756';
+		return '#f2c94c';
+	}
+
+	function renderWarningsPopup() {
+		const title = '<strong class="popup-title">青森市</strong>';
+		if (!currentWarnings.length) {
+			return `${title}<p>警戒レベル：なし</p><p>現在、警報・注意報は発表されていません</p>`;
+		}
+		const level = currentWarnings.some(warning => warning.severity === '大') ? '大' : '中';
+		const items = currentWarnings.map(warning =>
+			`<li><strong>${warning.name}</strong><br>${warning.area_name || '青森市'}・${warning.status}</li>`
+		).join('');
+		return `${title}<p>警戒レベル：<strong>${level}</strong></p><ul class="map-warning-list">${items}</ul>`;
+	}
+
+	function addShelterMarker(shelter, latitude, longitude, redPinIcon) {
+		const shelterName = document.createElement('strong');
+		shelterName.textContent = shelter.name || '避難所';
+		L.marker([latitude, longitude], { icon: redPinIcon })
+			.addTo(map)
+			.bindPopup(shelterName);
+	}
+
+	function geocodeShelter(shelter, redPinIcon) {
+		if (!shelter.address) return;
+		const viewbox = '139.8,41.3,141.5,40.3';
+		const queries = [shelter.name, shelter.address].filter(Boolean);
+
+		function requestGeocode(queryIndex) {
+			if (queryIndex >= queries.length) return;
+			const query = encodeURIComponent(queries[queryIndex]);
+			fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=jp&bounded=1&viewbox=${viewbox}&q=${query}`)
+				.then(response => response.ok ? response.json() : [])
+				.then(results => {
+					const result = results.find(item => {
+						const displayName = item.display_name || '';
+						return displayName.includes('青森市') && !displayName.includes('弘前市');
+					});
+					if (!result) {
+						requestGeocode(queryIndex + 1);
+						return;
+					}
+					const latitude = Number(result.lat);
+					const longitude = Number(result.lon);
+					if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+						addShelterMarker(shelter, latitude, longitude, redPinIcon);
+					}
+				})
+				.catch(() => {});
+		}
+
+		requestGeocode(0);
+	}
+
+	const redPinIcon = L.divIcon({
+		className: 'red-shelter-pin',
+		html: '<span></span>',
+		iconSize: [18, 24],
+		iconAnchor: [9, 24],
+		popupAnchor: [0, -24]
+	});
+	shelters.forEach(shelter => {
+		const latitude = Number(shelter.latitude ?? shelter.lat);
+		const longitude = Number(shelter.longitude ?? shelter.lng ?? shelter.lon);
+		if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+			addShelterMarker(shelter, latitude, longitude, redPinIcon);
+			return;
+		}
+		geocodeShelter(shelter, redPinIcon);
+	});
+
+	function updateBoundary() {
+		fetch('https://raw.githubusercontent.com/niiyz/JapanCityGeoJson/master/geojson/02/02201.json')
+			.then(response => {
+				if (!response.ok) throw new Error('boundary fetch failed');
+				return response.json();
+			})
+			.then(geojson => {
+				const boundary = L.geoJSON(geojson, {
+					style: () => ({
+						color: '#172554',
+						weight: 2,
+						opacity: 0.95,
+						fillColor: currentWarnings.length ? warningFillColor() : 'transparent',
+						fillOpacity: currentWarnings.length ? 0.32 : 0
+					}),
+					onEachFeature: (feature, layer) => layer.bindPopup(renderWarningsPopup())
+				}).addTo(map);
+				map.fitBounds(boundary.getBounds(), { padding: [12, 12] });
+			})
+			.catch(() => {});
+	}
+
+	function updateWeatherWarnings() {
+		fetch('/api/weather_warnings')
+			.then(response => response.json())
+			.then(data => {
+				currentWarnings = data.error ? [] : (data.warnings || []);
+				updateBoundary();
+			})
+			.catch(() => {});
+	}
+
+	updateWeatherWarnings();
+	setInterval(updateWeatherWarnings, 600000);
 });
 </script>
 {% endblock %}

@@ -8,15 +8,19 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">防災アプリ</div>
-    <button class="menu-button" id="menuButton" aria-label="メニュー" aria-expanded="false" aria-controls="siteNav">☰</button>
+    <a class="brand" href="/">防災アプリ</a>
+    <div class="topbar-actions">
+      <button class="language-button" id="languageButton" type="button">言語変更</button>
+      <button class="language-button" id="seniorModeButton" type="button">高齢者モード</button>
+      <button class="language-button" id="childModeButton" type="button">こどもモード</button>
+    </div>
   </header>
 
   <nav class="nav" id="siteNav">
-    <a href="/">ホーム</a>
     <a href="/shelter_search">避難所検索</a>
     <a href="/shelter_register">避難所登録</a>
     <a href="/board">指示・発信ボード</a>
+    <a href="/resident_reports">通報一覧</a>
     {% if session.logged_in %}
       <span class="user-status">ログイン中{% if session.username %}（{{ session.username }}）{% endif %}</span>
       <a href="/logout">ログアウト</a>
@@ -31,19 +35,222 @@
   </main>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const menuButton = document.getElementById('menuButton');
-      const siteNav = document.getElementById('siteNav');
+    (function () {
+      const translations = {
+        '防災アプリ': ['Disaster Prevention App', '防灾应用'],
+        '言語変更': ['Change language', '切换语言'],
+        'メニュー': ['Menu', '菜单'],
+        'ホーム': ['Home', '首页'],
+        '避難所検索': ['Shelter search', '避难所搜索'],
+        '避難所登録': ['Register shelter', '避难所登记'],
+        '指示・発信ボード': ['Instructions board', '指示发布板'],
+        '通報一覧': ['Report list', '举报列表'],
+        'ログイン中': ['Logged in', '已登录'],
+        '未ログイン': ['Not logged in', '未登录'],
+        'ログアウト': ['Log out', '退出登录'],
+        'ログイン': ['Log in', '登录'],
+        '管理者ログイン': ['Administrator login', '管理员登录'],
+        '避難所・災害マップ': ['Shelter and disaster map', '避难所与灾害地图'],
+        '気象警報・注意報': ['Weather warnings and advisories', '天气警报与注意事项'],
+        '住民向けのお知らせ': ['Resident announcements', '居民通知'],
+        '住民からの情報': ['Resident reports', '居民信息'],
+        '災害の種類': ['Disaster type', '灾害类型'],
+        '絞り込む': ['Filter', '筛选'],
+        'すべて': ['All', '全部'],
+        '住民から寄せられた情報を確認できます。': ['Review reports from residents.', '可以查看居民提供的信息。'],
+        '地域の状況や必要な支援を入力してください': ['Enter local conditions or needed support.', '请输入当地情况或所需帮助。'],
+        '情報を送信': ['Send information', '发送信息'],
+        '住民からの情報はありません。': ['No resident reports.', '暂无居民信息。'],
+        '発信ボードを確認する': ['View instructions board', '查看发布板'],
+        '避難所を検索する': ['Search shelters', '搜索避难所'],
+        '条件を指定して青森市の避難所を検索できます。': ['Search Aomori City shelters by condition.', '可以按条件搜索青森市的避难所。'],
+        '避難所検索結果': ['Shelter search results', '避难所搜索结果'],
+        '検索結果': ['Search results', '搜索结果'],
+        '検索地域': ['Search area', '搜索区域'],
+        '件': [' results', ' 条'],
+        '検索画面に戻る': ['Back to search', '返回搜索页面'],
+        'トップページへ戻る': ['Back to home', '返回首页'],
+        '避難所一覧表示': ['View all shelters', '显示所有避难所'],
+        '検索された避難所は存在しません': ['No shelters matched your search.', '没有符合搜索条件的避难所。'],
+        '避難所名': ['Shelter name', '避难所名称'],
+        '避難所名ふりがな': ['Shelter name (phonetic)', '避难所名称（读音）'],
+        '避難所住所': ['Shelter address', '避难所地址'],
+        '避難所許容人数': ['Shelter capacity', '避难所容纳人数'],
+        '避難所設備詳細': ['Shelter facilities', '避难所设施详情'],
+        '対応災害': ['Supported disasters', '可应对的灾害'],
+        '対応している災害': ['Supported disasters', '可应对的灾害'],
+        '地図表示': ['Map', '地图'],
+        '避難所設備条件': ['Shelter facility conditions', '避难所设施条件'],
+        'バリアフリー': ['Accessibility', '无障碍设施'],
+        'ペット対応': ['Pet-friendly', '可携带宠物'],
+        '多言語対応': ['Multilingual support', '多语言支持'],
+        '地震': ['Earthquake', '地震'],
+        '河川氾濫': ['River flooding', '河流泛滥'],
+        '津波': ['Tsunami', '海啸'],
+        '積雪災害': ['Heavy snow', '积雪灾害'],
+        '土砂災害': ['Landslide', '泥石流灾害'],
+        '台風': ['Typhoon', '台风'],
+        'その他': ['Other', '其他'],
+        '検索': ['Search', '搜索'],
+        '登録': ['Register', '登记'],
+        '必須': ['Required', '必填'],
+        '発信内容': ['Message', '发布内容'],
+        'お知らせのタイトル': ['Announcement title', '通知标题'],
+        '日時': ['Date and time', '日期和时间'],
+        '対象地区': ['Target area', '目标地区'],
+        '重要度': ['Priority', '重要程度'],
+        '選択してください': ['Please select', '请选择'],
+        '投稿する': ['Post', '发布'],
+        '発信一覧': ['Message list', '发布列表'],
+        '対象地域': ['Target region', '目标地区'],
+        '削除': ['Delete', '删除'],
+        '登録された指示はありません。': ['No instructions have been registered.', '没有已登记的指示。'],
+        '新しい避難所情報を登録します。': ['Register new shelter information.', '登记新的避难所信息。'],
+        '住所検索': ['Find address', '搜索地址'],
+        '郵便番号': ['Postal code', '邮政编码'],
+        '画像表示': ['View image', '查看图片'],
+        '避難所までの経路案内': ['Directions to shelter', '前往避难所的路线'],
+        '許容人数': ['Capacity', '容纳人数'],
+        '設備詳細': ['Facilities', '设施详情'],
+        '未登録': ['Not registered', '未登记'],
+        '候補': ['Candidate', '候选'],
+        '青森市役所からの距離': ['Distance from Aomori City Hall', '距离青森市政府'],
+        '読み込み中...': ['Loading...', '加载中...'],
+        '10分おき自動更新': ['Auto-refresh every 10 minutes', '每10分钟自动更新'],
+        '警戒レベル': ['Alert level', '警戒级别'],
+        'なし': ['None', '无'],
+        '大': ['High', '高'],
+        '中': ['Medium', '中'],
+        '小': ['Low', '低'],
+        '警報・注意報': ['Warnings and advisories', '警报与注意事项'],
+        'データ取得時刻': ['Data retrieved', '数据获取时间'],
+        '気象庁発表時刻': ['JMA announcement', '日本气象厅发布时间'],
+        '現在、警報・注意報は発表されていません': ['No warnings or advisories are currently issued.', '目前没有发布警报或注意事项。'],
+        '気象情報の取得に失敗しました': ['Failed to retrieve weather information.', '获取天气信息失败。'],
+        '市境データを取得できませんでした。': ['Could not retrieve city boundary data.', '无法获取市界数据。'],
+        '指定なし': ['Not specified', '未指定']
+        ,'避難所名を入力してください。': ['Please enter a shelter name.', '请输入避难所名称。']
+        ,'避難所名ふりがなを入力してください。': ['Please enter the phonetic shelter name.', '请输入避难所名称的读音。']
+        ,'避難所住所を入力してください。': ['Please enter a shelter address.', '请输入避难所地址。']
+        ,'避難所許容人数を入力してください。': ['Please enter the shelter capacity.', '请输入避难所容纳人数。']
+        ,'避難所設備詳細を入力してください。': ['Please enter shelter facilities.', '请输入避难所设施详情。']
+        ,'対応災害を入力してください。': ['Please select supported disasters.', '请选择可应对的灾害。']
+        ,'避難所住所は青森市内の住所を入力してください。': ['Please enter an address within Aomori City.', '请输入青森市内的地址。']
+        ,'避難所許容人数は数字のみ入力してください。': ['Capacity must contain numbers only.', '容纳人数只能输入数字。']
+        ,'避難所名を登録しました。': ['Shelter name registered.', '避难所名称已登记。']
+      };
+      const hiragana = {
+        '防災アプリ': 'ぼうさいあぷり', '言語変更': 'げんごへんこう', 'メニュー': 'めにゅー',
+        'ホーム': 'ほーむ', '避難所検索': 'ひなんじょけんさく', '避難所登録': 'ひなんじょとうろく',
+        '指示・発信ボード': 'しじ・はっしんぼーど', 'ログイン中': 'ろぐいんちゅう', '未ログイン': 'みろぐいん',
+        'ログアウト': 'ろぐあうと', 'ログイン': 'ろぐいん', '管理者ログイン': 'かんりしゃろぐいん',
+        '避難所・災害マップ': 'ひなんじょ・さいがいまっぷ', '気象警報・注意報': 'きしょうけいほう・ちゅういほう',
+        '住民向けのお知らせ': 'じゅうみんむけのおしらせ', '発信ボードを確認する': 'はっしんぼーどをかくにんする',
+        '避難所を検索する': 'ひなんじょをけんさくする', '避難所検索結果': 'ひなんじょけんさくけっか',
+        '検索結果': 'けんさくけっか', '検索地域': 'けんさくちいき', '検索画面に戻る': 'けんさくがめんにもどる',
+        'トップページへ戻る': 'とっぷぺーじへもどる', '避難所一覧表示': 'ひなんじょいちらんひょうじ',
+        '検索された避難所は存在しません': 'けんさくされたひなんじょはそんざいしません',
+        '避難所名': 'ひなんじょめい', '避難所名ふりがな': 'ひなんじょめいふりがな', '避難所住所': 'ひなんじょじゅうしょ',
+        '避難所許容人数': 'ひなんじょきょようにんずう', '避難所設備詳細': 'ひなんじょせつびしょうさい',
+        '対応災害': 'たいおうさいがい', '対応している災害': 'たいおうしているさいがい', '地図表示': 'ちずひょうじ',
+        '避難所設備条件': 'ひなんじょせつびじょうけん', 'バリアフリー': 'ばりあふりー', 'ペット対応': 'ぺっとたいおう',
+        '多言語対応': 'たげんごたいおう', '地震': 'じしん', '河川氾濫': 'かせんはんらん', '津波': 'つなみ',
+        '積雪災害': 'せきせつさいがい', '土砂災害': 'どしゃさいがい', '台風': 'たいふう', 'その他': 'そのた',
+        '検索': 'けんさく', '登録': 'とうろく', '必須': 'ひっす', '発信内容': 'はっしんないよう', '日時': 'にちじ',
+        '対象地区': 'たいしょうちく', '重要度': 'じゅうようど', '選択してください': 'せんたくしてください', '投稿する': 'とうこうする',
+        '発信一覧': 'はっしんいちらん', '対象地域': 'たいしょうちいき', '削除': 'さくじょ', '住所検索': 'じゅうしょけんさく',
+        '郵便番号': 'ゆうびんばんごう', '画像表示': 'がぞうひょうじ', '避難所までの経路案内': 'ひなんじょまでのけいろあんない',
+        '許容人数': 'きょようにんずう', '設備詳細': 'せつびしょうさい', '未登録': 'みとうろく', '候補': 'こうほ',
+        '読み込み中...': 'よみこみちゅう...', '警戒レベル': 'けいかいれべる', 'なし': 'なし', '現在、警報・注意報は発表されていません': 'げんざい、けいほう・ちゅういほうははっぴょうされていません',
+        '気象情報の取得に失敗しました': 'きしょうじょうほうのしゅとくにしっぱいしました', '指定なし': 'していなし',
+        '高齢者モード': 'こうれいしゃもーど', 'こどもモード': 'こどももーど'
+      };
+      const languageNames = ['日本語', 'English', '中文'];
+      let language = Number(localStorage.getItem('bousaiLanguage') || 0);
+      let childMode = false;
+      if (!Number.isInteger(language) || language < 0 || language > 2) language = 0;
 
-      if (!menuButton || !siteNav) {
-        return;
+      function translateValue(value) {
+        if (language === 0) return value;
+        let translated = value;
+        Object.keys(translations).sort((a, b) => b.length - a.length).forEach(function (source) {
+          translated = translated.split(source).join(translations[source][language - 1]);
+        });
+        return translated;
       }
 
-      menuButton.addEventListener('click', function () {
-        const isOpen = siteNav.classList.toggle('open');
-        menuButton.setAttribute('aria-expanded', String(isOpen));
+      function toHiragana(value) {
+        let converted = value;
+        Object.keys(hiragana).sort((a, b) => b.length - a.length).forEach(function (source) {
+          converted = converted.split(source).join(hiragana[source]);
+        });
+        return converted;
+      }
+
+      function translateElement(element) {
+        if (element.nodeType === Node.TEXT_NODE) {
+          if (element.nodeValue.trim()) element.nodeValue = childMode ? toHiragana(element.nodeValue) : translateValue(element.nodeValue);
+          return;
+        }
+        if (element.nodeType !== Node.ELEMENT_NODE) return;
+        ['placeholder', 'aria-label', 'title'].forEach(function (attribute) {
+          if (element.hasAttribute(attribute)) element.setAttribute(attribute, childMode ? toHiragana(element.getAttribute(attribute)) : translateValue(element.getAttribute(attribute)));
+        });
+        element.childNodes.forEach(translateElement);
+      }
+
+      function applyLanguage() {
+        document.documentElement.lang = language === 0 ? 'ja' : language === 1 ? 'en' : 'zh-CN';
+        translateElement(document.body);
+        document.title = childMode ? toHiragana('防災アプリ') : translateValue('防災アプリ');
+        const button = document.getElementById('languageButton');
+        if (button) button.textContent = `${translateValue('言語変更')} (${languageNames[language]})`;
+        const seniorButton = document.getElementById('seniorModeButton');
+        const childButton = document.getElementById('childModeButton');
+        if (seniorButton) seniorButton.textContent = childMode ? toHiragana('高齢者モード') : translateValue('高齢者モード');
+        if (childButton) childButton.textContent = childMode ? toHiragana('こどもモード') : translateValue('こどもモード');
+      }
+
+      window.translateAppText = translateValue;
+      document.addEventListener('DOMContentLoaded', function () {
+        childMode = localStorage.getItem('bousaiChildMode') === 'true';
+        if (childMode) {
+          language = 0;
+          document.documentElement.classList.add('child-mode');
+        }
+        if (localStorage.getItem('bousaiSeniorMode') === 'true') document.documentElement.classList.add('senior-mode');
+        const seniorButton = document.getElementById('seniorModeButton');
+        const childButton = document.getElementById('childModeButton');
+        if (seniorButton) seniorButton.addEventListener('click', function () {
+          const enabled = !document.documentElement.classList.contains('senior-mode');
+          document.documentElement.classList.toggle('senior-mode', enabled);
+          localStorage.setItem('bousaiSeniorMode', String(enabled));
+          applyLanguage();
+        });
+        if (childButton) childButton.addEventListener('click', function () {
+          childMode = !childMode;
+          localStorage.setItem('bousaiChildMode', String(childMode));
+          if (childMode) {
+            language = 0;
+            localStorage.setItem('bousaiLanguage', '0');
+          }
+          window.location.reload();
+        });
+        const button = document.getElementById('languageButton');
+        if (button) button.addEventListener('click', function () {
+          language = (language + 1) % 3;
+          localStorage.setItem('bousaiLanguage', String(language));
+          window.location.reload();
+        });
+        applyLanguage();
+        new MutationObserver(function (mutations) {
+          mutations.forEach(function (mutation) {
+            mutation.addedNodes.forEach(translateElement);
+          });
+        }).observe(document.body, { childList: true, subtree: true });
       });
-    });
+    }());
+
   </script>
 </body>
 </html>

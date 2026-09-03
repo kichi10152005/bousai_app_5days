@@ -114,12 +114,17 @@
   </p>
 
   <p>
-    <label class="field-label" for="address"><span class="required-tag">必須</span> 避難所住所 <span style="color: #666; font-size: 13px;">（例：大阪府大阪市北区堂島3-1-21）</span></label><br>
+    <label class="field-label" for="furigana"><span class="required-tag">必須</span> 避難所名ふりがな</label><br>
+    <input type="text" id="furigana" name="furigana" placeholder="えぬてぃーてぃーでーたかんさい" style="width: 100%; max-width: 500px;" required>
+  </p>
+
+  <p>
+    <label class="field-label" for="address"><span class="required-tag">必須</span> 避難所住所 <span style="color: #666; font-size: 13px;">（例：青森県青森市中央1-22-5）</span></label><br>
     <div class="zipcode-row">
       <input type="text" id="zipcode" name="zipcode" placeholder="郵便番号" maxlength="7">
       <button type="button" class="zip-search-btn" id="zipcodeSearchBtn">住所検索</button>
     </div>
-    <input type="text" id="address" name="address" placeholder="大阪府大阪市北区堂島3-1-21" style="width: 100%; max-width: 500px;" required>
+    <input type="text" id="address" name="address" placeholder="青森県青森市中央1-22-5" style="width: 100%; max-width: 500px;" required>
   </p>
 
   <script>
@@ -157,8 +162,8 @@
   </script>
 
   <p>
-    <label class="field-label" for="capacity"><span class="required-tag">必須</span> 避難所許容人数 <span style="color: #666; font-size: 13px;">（例：100人）</span></label><br>
-    <input type="text" id="capacity" name="capacity" placeholder="100人" style="width: 100%; max-width: 500px;" required>
+    <label class="field-label" for="capacity"><span class="required-tag">必須</span> 避難所許容人数 <span style="color: #666; font-size: 13px;">（例：100）</span></label><br>
+    <input type="text" id="capacity" name="capacity" inputmode="numeric" pattern="[0-9]+" placeholder="100" style="width: 100%; max-width: 500px;" required>
   </p>
 
   <p>

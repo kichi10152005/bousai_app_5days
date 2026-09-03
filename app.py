@@ -5,6 +5,7 @@ import json
 import os
 import urllib.request
 import urllib.parse
+import re
 from math import asin, cos, radians, sin, sqrt
 from datetime import datetime, timedelta, timezone
 
@@ -227,7 +228,7 @@ def search_shelters(name='', location='', equipment=None, hazards=None, district
     }
     results = []
     for shelter in filter_shelters():
-        if name and name not in shelter.get('name', ''):
+        if name and not any(name in value for value in (shelter.get('name', ''), shelter.get('furigana', ''))):
             continue
         if district and shelter.get('district') != district:
             continue
@@ -388,12 +389,53 @@ def get_weather_warnings():
 # トップページ：templates/index.html を返す（住民向け指示も表示する）
 @app.route('/')
 def index():
-    resident_notices = [i for i in instructions if i.get('target') == '住民']
+    def notice_datetime(item):
+        value = item.get('posted_at') or item.get('created_at') or ''
+        try:
+            parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=JST)
+        except ValueError:
+            try:
+                return datetime.strptime(value, '%Y年%m月%d日 %H:%M').replace(tzinfo=JST)
+            except ValueError:
+                return datetime.min.replace(tzinfo=JST)
+
+    resident_notices = sorted(
+        (i for i in instructions if i.get('target') == '住民'),
+        key=notice_datetime,
+        reverse=True
+    )
     return render_template(
         'index.html',
         resident_notices=resident_notices,
         shelters=filter_shelters()
     )
+
+# ホーム画面からの住民情報を受け付ける
+@app.route('/resident_report', methods=['POST'])
+def resident_report():
+    content = request.form.get('content', '').strip()
+    district = request.form.get('district', '').strip()
+    disaster_type = request.form.get('disaster_type', '').strip()
+    valid_districts = {'東地区', '中心地区', '南地区', '西地区', '浪岡地区'}
+    valid_disaster_types = {'地震', '河川氾濫', '津波', '積雪災害', '土砂災害', '台風', 'その他'}
+    if not content or district not in valid_districts or disaster_type not in valid_disaster_types:
+        return redirect(url_for('index'))
+
+    now = get_japan_time()
+    report_id = max((item.get('id', 0) for item in instructions), default=0) + 1
+    instructions.append({
+        'id': report_id,
+        'target': '住民からの情報',
+        'content': content,
+        'district': district,
+        'disaster_type': disaster_type,
+        'created_at': now,
+        'updated_at': now,
+        'posted_at': now,
+    })
+    save_instructions()
+    return redirect(url_for('index'))
 
 # ログインページ
 @app.route('/login', methods=['GET', 'POST'])
@@ -440,18 +482,25 @@ def logout():
 def shelter_register():
     if request.method == 'POST':
         shelter_name = request.form.get('name', '').strip()
+        shelter_furigana = request.form.get('furigana', '').strip()
         shelter_address = request.form.get('address', '').strip()
         shelter_capacity = request.form.get('capacity', '').strip()
         selected_equipment = request.form.getlist('equipment')
         other_equipment = request.form.get('equipment_other', '').strip()
         if other_equipment:
-            selected_equipment.append(other_equipment)
+            selected_equipment = [
+                f'その他({other_equipment})' if item == 'その他' else item
+                for item in selected_equipment
+            ]
         shelter_equipment = ', '.join(selected_equipment)
 
         selected_disasters = request.form.getlist('disaster')
         other_disaster = request.form.get('disaster_other', '').strip()
         if other_disaster:
-            selected_disasters.append(other_disaster)
+            selected_disasters = [
+                f'その他({other_disaster})' if item == 'その他' else item
+                for item in selected_disasters
+            ]
         shelter_disaster = ', '.join(selected_disasters)
         shelter_image = request.form.get('image', '').strip()
 
@@ -466,6 +515,7 @@ def shelter_register():
 
         required_fields = {
             '避難所名': shelter_name,
+            '避難所名ふりがな': shelter_furigana,
             '避難所住所': shelter_address,
             '避難所許容人数': shelter_capacity,
             '避難所設備詳細': shelter_equipment,
@@ -480,11 +530,26 @@ def shelter_register():
                 message=f'{missing_field}を入力してください。'
             )
 
+        if CITY_NAME not in shelter_address:
+            return render_template(
+                'shelter_register.html',
+                error=True,
+                message=f'避難所住所は{CITY_NAME}内の住所を入力してください。'
+            )
+
+        if not re.fullmatch(r'[0-9]+', shelter_capacity):
+            return render_template(
+                'shelter_register.html',
+                error=True,
+                message='避難所許容人数は数字のみ入力してください。'
+            )
+
         latitude, longitude = geocode_shelter(shelter_name, shelter_address)
         shelter_id = max((s.get('id', 0) for s in shelters), default=0) + 1
         shelters.append({
             'id': shelter_id,
             'name': shelter_name,
+            'furigana': shelter_furigana,
             'city': CITY_NAME,
             'address': shelter_address,
             'latitude': latitude,
@@ -554,33 +619,58 @@ def board():
             return redirect(url_for('board'))
 
         content = request.form.get('content', '').strip()
+        title = request.form.get('title', '').strip()
         district = request.form.get('district', '').strip()
         priority = request.form.get('priority', '').strip()
-        posted_at = request.form.get('posted_at', '').strip()
-        valid_districts = {'A地区', 'B地区', 'C地区'}
+        valid_districts = {'東地区', '中心地区', '南地区', '西地区', '浪岡地区'}
         valid_priorities = {'大', '中', '小'}
-        if not content or district not in valid_districts or priority not in valid_priorities:
+        if not title or not content or district not in valid_districts or priority not in valid_priorities:
             return render_template(
                 'board.html', instructions=sorted(instructions, key=lambda item: item.get('posted_at', item.get('created_at', '')), reverse=True),
-                error='発信内容、対象地区、重要度を正しく入力してください。',
-                posted_at=posted_at, district=district, priority=priority, content=content
+                resident_reports=sorted(
+                    (item for item in instructions if item.get('target') == '住民からの情報'),
+                    key=lambda item: item.get('posted_at', item.get('created_at', '')), reverse=True
+                ),
+                error='お知らせのタイトル、発信内容、対象地区、重要度を正しく入力してください。',
+                title=title, district=district, priority=priority, content=content
             )
         now = get_japan_time()
         instruction_id = max((item.get('id', 0) for item in instructions), default=0) + 1
         instructions.append({
-            'id': instruction_id, 'target': '住民', 'content': content,
+            'id': instruction_id, 'target': '住民', 'title': title, 'content': content,
             'district': district, 'priority': priority, 'shelter': '',
             'status': '新規', 'created_at': now, 'updated_at': now,
-            'posted_at': posted_at or datetime.now(JST).strftime('%Y-%m-%dT%H:%M')
+            'posted_at': now
         })
         save_instructions()
         return redirect(url_for('board'))
 
-    resident_instructions = sorted(instructions, key=lambda item: item.get('posted_at', item.get('created_at', '')), reverse=True)
+    resident_instructions = sorted(
+        (item for item in instructions if item.get('target') != '住民からの情報'),
+        key=lambda item: item.get('posted_at', item.get('created_at', '')), reverse=True
+    )
     return render_template(
         'board.html',
         instructions=resident_instructions,
-        posted_at=datetime.now(JST).strftime('%Y-%m-%dT%H:%M')
+    )
+
+
+@app.route('/resident_reports')
+@login_required
+def resident_reports():
+    district = request.args.get('district', '').strip()
+    disaster_type = request.args.get('disaster_type', '').strip()
+    reports = sorted(
+        (item for item in instructions if item.get('target') == '住民からの情報'),
+        key=lambda item: item.get('posted_at', item.get('created_at', '')), reverse=True
+    )
+    if district:
+        reports = [item for item in reports if item.get('district') == district]
+    if disaster_type:
+        reports = [item for item in reports if item.get('disaster_type') == disaster_type]
+    return render_template(
+        'resident_reports.html', reports=reports,
+        selected_district=district, selected_disaster_type=disaster_type
     )
 
 # 検索結果ページ：templates/search_results.html を返す

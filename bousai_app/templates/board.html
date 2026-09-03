@@ -10,10 +10,10 @@
 
 <form class="board-form" method="post">
   <div class="board-form-grid">
-    <label>発信内容<br><textarea name="content" rows="4" required>{{ content or '' }}</textarea></label>
-    <label>日時<br><input type="datetime-local" name="posted_at" value="{{ posted_at or '' }}"></label>
-    <label>対象地区<br><select name="district" required><option value="">選択してください</option>{% for item in ['A地区', 'B地区', 'C地区'] %}<option value="{{ item }}" {% if district == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+    <label class="board-title-field">お知らせのタイトル<br><input type="text" name="title" value="{{ title or '' }}" maxlength="100" required></label>
+    <label class="board-content-field">発信内容<br><textarea name="content" rows="4" required>{{ content or '' }}</textarea></label>
     <label>重要度<br><select name="priority" required><option value="">選択してください</option>{% for item in ['大', '中', '小'] %}<option value="{{ item }}" {% if priority == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+    <label>対象地区<br><select name="district" required><option value="">選択してください</option>{% for item in ['東地区', '中心地区', '南地区', '西地区', '浪岡地区'] %}<option value="{{ item }}" {% if district == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
   </div>
   <button type="submit">投稿する</button>
 </form>
@@ -23,10 +23,11 @@
 {% if instructions %}
 <div class="board-table-wrap">
 <table class="board-table">
-  <thead><tr><th>日時</th><th>内容</th><th>対象地域</th><th>重要度</th><th>削除</th></tr></thead>
+  <thead><tr><th>日時</th><th>お知らせのタイトル</th><th>内容</th><th>対象地域</th><th>重要度</th><th>削除</th></tr></thead>
   <tbody>{% for inst in instructions %}
     <tr>
       <td>{{ inst.posted_at or inst.created_at or '未設定' }}</td>
+      <td>{{ inst.title or '未設定' }}</td>
       <td>{{ inst.content }}</td>
       <td>● {{ inst.district or '未設定' }}</td>
       <td class="priority-{{ inst.priority or 'unset' }}">{{ inst.priority or '未設定' }}</td>
@@ -41,8 +42,9 @@
 
 <style>
 .board-form { padding: 20px; background: #fff; border: 1px solid #dfe7ee; box-shadow: 0 4px 12px rgba(27,54,82,.08); }
-.board-form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+.board-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
+.board-title-field, .board-content-field { grid-column: 1 / -1; }
 .board-form label { color: #0d3f76; font-weight: 700; }.board-form textarea, .board-form input, .board-form select { width: 100%; max-width: 100%; margin-top: 6px; padding: 9px; border: 1px solid #b7c7d4; font: inherit; }.board-form button, .board-table button { min-height: 38px; padding: 8px 14px; border: 0; background: #0a5ea8; color: white; font-weight: 700; cursor: pointer; }.board-error { color: #b42318; font-weight: 700; }.board-table-wrap { overflow-x: auto; }.board-table { width: 100%; border-collapse: collapse; background: #fff; }.board-table th, .board-table td { padding: 11px 10px; border-bottom: 1px solid #dfe7ee; text-align: left; vertical-align: top; }.board-table th { background: #eaf0f4; color: #0d3f76; }.board-table td:nth-child(2) { min-width: 240px; overflow-wrap: anywhere; }.priority-大 { color: #b42318; font-weight: 800; }.priority-中 { color: #946200; font-weight: 700; }.priority-小 { color: #53677b; }.board-table form { margin: 0; }
-@media (max-width: 640px) { .board-form-grid { grid-template-columns: 1fr; } .board-form { padding: 14px; } }
+@media (max-width: 860px) { .board-columns { grid-template-columns: 1fr; } } @media (max-width: 640px) { .board-form-grid { grid-template-columns: 1fr; } .board-form { padding: 14px; } }
 </style>
 {% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}通報一覧 - 防災アプリ{% endblock %}
+
+{% block content %}
+<section class="reports-page">
+  <h2>通報一覧</h2>
+  <p>住民から寄せられた情報を確認できます。</p>
+
+  <form class="report-filter" method="get">
+    <label>対象地区<select name="district"><option value="">すべて</option>{% for item in ['東地区', '中心地区', '南地区', '西地区', '浪岡地区'] %}<option value="{{ item }}" {% if selected_district == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+    <label>災害の種類<select name="disaster_type"><option value="">すべて</option>{% for item in ['地震', '河川氾濫', '津波', '積雪災害', '土砂災害', '台風', 'その他'] %}<option value="{{ item }}" {% if selected_disaster_type == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+    <button type="submit">絞り込む</button>
+  </form>
+
+  {% if reports %}
+    <ul class="report-list">
+      {% for report in reports %}
+        <li class="report-item">
+          <h3>住民からの情報</h3>
+          <time>{{ report.posted_at or report.created_at or '未設定' }}</time>
+          <dl class="report-details"><div><dt>対象地区</dt><dd>{{ report.district or '未設定' }}</dd></div><div><dt>災害の種類</dt><dd>{{ report.disaster_type or '未設定' }}</dd></div></dl>
+          <p>{{ report.content }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-reports">住民からの情報はありません。</p>
+  {% endif %}
+</section>
+
+<style>
+.reports-page { max-width: 900px; margin: 0 auto; }.reports-page h2 { color: #0d3f76; }.report-filter { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 22px 0; padding: 16px; background: #fff; border: 1px solid #dfe7ee; }.report-filter label { display: grid; gap: 5px; color: #0d3f76; font-weight: 700; }.report-filter select { min-width: 160px; padding: 8px; border: 1px solid #b7c7d4; font: inherit; }.report-filter button { padding: 9px 16px; border: 0; background: #0a5ea8; color: #fff; font-weight: 700; cursor: pointer; }.report-list { display: grid; gap: 14px; padding: 0; margin: 24px 0 0; list-style: none; }.report-item { padding: 18px; background: #fff; border: 1px solid #dfe7ee; box-shadow: 0 4px 12px rgba(27,54,82,.08); }.report-item h3 { margin: 0 0 6px; color: #0d3f76; }.report-item time { color: #718296; font-size: 13px; }.report-details { display: flex; gap: 16px; margin: 10px 0 0; }.report-details dt { color: #718296; font-size: 12px; }.report-details dd { margin: 2px 0 0; font-weight: 700; }.report-item p { margin: 10px 0 0; overflow-wrap: anywhere; }.empty-reports { padding: 20px; background: #fff; border: 1px solid #dfe7ee; }
+</style>
+{% endblock %}

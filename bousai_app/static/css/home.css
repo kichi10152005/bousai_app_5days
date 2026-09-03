@@ -37,30 +37,54 @@ body {
   font-size: clamp(22px, 2vw, 30px);
   font-weight: 700;
   letter-spacing: 0.04em;
+  text-decoration: none;
 }
 
-.menu-button {
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.language-button {
   appearance: none;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
   background: transparent;
-  color: white;
-  font-size: 32px;
-  line-height: 1;
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  padding: 0;
+}
+
+.language-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+html.senior-mode body {
+  font-size: 20px;
+}
+
+html.senior-mode input,
+html.senior-mode select,
+html.senior-mode textarea,
+html.senior-mode button,
+html.senior-mode a,
+html.senior-mode label,
+html.senior-mode th,
+html.senior-mode td {
+  font-size: 1.25em !important;
 }
 
 .nav {
-  display: none;
+  display: flex;
   flex-wrap: wrap;
   gap: 10px 14px;
   padding: 12px 18px 16px;
   background: rgba(11, 78, 135, 0.96);
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.nav.open {
-  display: flex;
 }
 
 .nav a,
@@ -91,6 +115,24 @@ body {
   margin-bottom: 22px;
 }
 
+.home-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.page-wrap:has(.home-dashboard) {
+  max-width: none;
+  margin-top: 18px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.home-side-panels {
+  min-width: 0;
+}
+
 .shelter-map-panel {
   padding: 18px 18px 14px;
 }
@@ -112,11 +154,50 @@ body {
 
 .map-box {
   width: 100%;
-  height: 440px;
+  height: 390px;
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid #dfeaf1;
   background: #dfeef7;
+}
+
+.resident-report-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+}
+
+.resident-report-form label {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.resident-report-form textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 9px;
+  border: 1px solid #b7c7d4;
+  font: inherit;
+}
+
+.resident-report-form select {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid #b7c7d4;
+  font: inherit;
+}
+
+.resident-report-form button {
+  justify-self: start;
+  padding: 9px 16px;
+  border: 0;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .weather-panel {
@@ -144,6 +225,35 @@ body {
   border-bottom: 0;
 }
 
+.notice-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 4px 0 0;
+}
+
+.notice-details div {
+  padding: 7px 9px;
+  background: rgba(234, 240, 244, 0.7);
+}
+
+.notice-details dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.notice-details dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .notice-details {
+    grid-template-columns: 1fr;
+  }
+}
+
 .notice-list strong {
   color: var(--navy);
 }
@@ -167,6 +277,12 @@ body {
 
 .home-actions {
   margin: 4px 0 24px;
+}
+
+@media (max-width: 760px) {
+  .home-dashboard {
+    grid-template-columns: 1fr;
+  }
 }
 
 .weather-header {
