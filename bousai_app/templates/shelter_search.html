@@ -2,7 +2,174 @@
 
 {% block content %}
 <h2>避難所検索</h2>
-<p>登録されている避難所を確認できます。</p>
+<p>条件を指定して青森市の避難所を検索できます。</p>
 
-<p><a href="/all_shelters">全施設一覧</a></p>
+<style>
+	.shelter-search-form {
+		max-width: 860px;
+		margin: 24px auto;
+		padding: 24px;
+		background: #fff;
+		border: 1px solid #dfe7ee;
+		box-shadow: 0 4px 12px rgba(27, 54, 82, 0.08);
+	}
+
+	.search-columns {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 28px;
+	}
+
+	.search-group {
+		margin-bottom: 24px;
+	}
+
+	.search-group h3 {
+		margin: 0 0 12px;
+		font-size: 17px;
+		color: #0d3f76;
+	}
+
+	.search-name {
+		width: 100%;
+		padding: 10px;
+		font-size: 16px;
+		border: 1px solid #b7c7d4;
+	}
+
+	.choice-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 12px 16px;
+	}
+
+	.choice-grid label {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		font-size: 15px;
+	}
+
+	.search-map {
+		height: 250px;
+		border: 1px solid #b7c7d4;
+	}
+
+	.search-actions {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		margin-top: 4px;
+	}
+
+	.search-button {
+		border: 0;
+		background: #0a5ea8;
+		color: #fff;
+		padding: 11px 28px;
+		font-size: 16px;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.search-results {
+		max-width: 860px;
+		margin: 24px auto;
+	}
+
+	.search-results li {
+		padding: 10px 0;
+		border-bottom: 1px solid #dfe7ee;
+	}
+
+	.search-error {
+		color: #b42318;
+		font-weight: 700;
+	}
+
+	@media (max-width: 640px) {
+		.shelter-search-form {
+			padding: 16px;
+		}
+
+		.search-columns {
+			grid-template-columns: 1fr;
+			gap: 0;
+		}
+	}
+</style>
+
+<form class="shelter-search-form" method="get" action="/search_results">
+	<div class="search-columns">
+		<div>
+			<div class="search-group">
+				<h3>避難所名</h3>
+				<input class="search-name" type="text" name="name" value="{{ conditions.name }}" placeholder="（自由入力）">
+			</div>
+			<div class="search-group">
+				<h3>どこから探すか</h3>
+				<div class="choice-grid">
+					{% for option in ['現在地', '自宅'] %}
+						<label><input type="radio" name="location" value="{{ option }}" {% if conditions.location == option %}checked{% endif %}>{{ option }}</label>
+					{% endfor %}
+				</div>
+			</div>
+			<div class="search-group">
+				<h3>避難所設備条件</h3>
+				<div class="choice-grid">
+					{% for option in ['バリアフリー', 'ペット対応', '多言語対応', 'なし', 'その他'] %}
+						<label><input type="checkbox" name="equipment" value="{{ option }}" {% if option in conditions.equipment %}checked{% endif %}>{{ option }}</label>
+					{% endfor %}
+				</div>
+			</div>
+		</div>
+		<div>
+			<div class="search-group">
+				<h3>対応している災害</h3>
+				<div class="choice-grid">
+					{% for option in ['地震', '河川氾濫', '津波', '積雪災害', '土砂災害', '台風'] %}
+						<label><input type="checkbox" name="hazard" value="{{ option }}" {% if option in conditions.hazard %}checked{% endif %}>{{ option }}</label>
+					{% endfor %}
+				</div>
+			</div>
+			<div class="search-group">
+				<h3>地図表示</h3>
+				<div id="searchMap" class="search-map"></div>
+			</div>
+		</div>
+	</div>
+	<div class="search-actions">
+		<a href="/all_shelters">避難所一覧表示</a>
+		<button class="search-button" type="submit">検索</button>
+	</div>
+</form>
+
+{% if results is not none %}
+	<section class="search-results">
+		<h2>検索結果（{{ results|length }}件）</h2>
+		{% if results %}
+			<ul>
+				{% for shelter in results %}
+					<li>{{ shelter.name }}</li>
+				{% endfor %}
+			</ul>
+		{% else %}
+			<p class="search-error" role="alert">検索された避難所は存在しません</p>
+		{% endif %}
+	</section>
+{% endif %}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+	const mapElement = document.getElementById('searchMap');
+	if (!mapElement || typeof L === 'undefined') return;
+	const map = L.map(mapElement).setView([40.8244, 140.7400], 10);
+	L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		attribution: '© OpenStreetMap contributors'
+	}).addTo(map);
+});
+</script>
 {% endblock %}

@@ -4,7 +4,7 @@
 <div class="home-panel shelter-map-panel">
   <div class="section-title">
     <span class="icon">📍</span>
-    <span>避難所マップ</span>
+    <span>青森市 避難所・災害マップ</span>
   </div>
   <div id="shelterMap" class="map-box"></div>
 </div>
@@ -15,7 +15,7 @@
       <span class="icon weather-icon">☁️</span>
       <span>青森市 気象警報・注意報</span>
     </div>
-    <button class="refresh-badge" type="button">↻ 10分おき自動更新</button>
+    <span class="refresh-badge">↻ 10分おき自動更新</span>
   </div>
 
   <div id="weatherContent" class="weather-content">
@@ -23,22 +23,148 @@
   </div>
 </div>
 
+<div class="home-panel notices-panel">
+  <div class="section-title"><span class="icon">📢</span><span>住民向けのお知らせ</span></div>
+  {% if resident_notices %}
+    <ul class="notice-list">
+      {% for notice in resident_notices %}
+        <li><strong>{{ notice.title or 'お知らせ' }}</strong><span>{{ notice.content }}</span></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-state">現在、住民向けのお知らせはありません。</p>
+  {% endif %}
+  <a class="action-link" href="/board">発信ボードを確認する</a>
+</div>
+
+<div class="home-actions">
+  <a class="action-link" href="/shelter_search">避難所を検索する</a>
+  <a class="action-link" href="/login">管理者ログイン</a>
+</div>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const map = L.map('shelterMap').setView([35.3390, 139.4903], 12);
+  const map = L.map('shelterMap').setView([40.8244, 140.7400], 10);
+  const shelters = {{ shelters | tojson }};
+  let currentWarnings = [];
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
+    function renderWarningsPopup() {
+      const title = '<strong class="popup-title">青森市</strong>';
+      if (!currentWarnings.length) {
+        return `${title}<p>警戒レベル：なし</p><p>現在、警報・注意報は発表されていません</p>`;
+      }
+      const level = currentWarnings.some(warning => warning.severity === '大') ? '大' : '中';
+      const items = currentWarnings.map(warning =>
+        `<li><strong>${warning.name}</strong><br>${warning.area_name || '青森市'}・${warning.status}</li>`
+      ).join('');
+      return `${title}<p>警戒レベル：<strong>${level}</strong></p><ul class="map-warning-list">${items}</ul>`;
+    }
+
+    function warningFillColor() {
+      if (currentWarnings.some(warning => ['32', '33', '34', '35', '36', '37', '38', '39'].includes(warning.code))) return '#263238';
+      if (currentWarnings.some(warning => ['43', '48', '49'].includes(warning.code))) return '#8e44ad';
+      if (currentWarnings.some(warning => warning.severity === '大')) return '#e45756';
+      return '#f2c94c';
+    }
+
+    function addShelterMarker(shelter, latitude, longitude, redPinIcon) {
+      const shelterName = document.createElement('strong');
+      shelterName.textContent = shelter.name || '避難所';
+      L.marker([latitude, longitude], { icon: redPinIcon })
+        .addTo(map)
+        .bindPopup(shelterName);
+    }
+
+    function geocodeShelter(shelter, redPinIcon) {
+      if (!shelter.address) return;
+      const viewbox = '139.8,41.3,141.5,40.3';
+      const queries = [shelter.name, shelter.address].filter(Boolean);
+
+      function requestGeocode(queryIndex) {
+        if (queryIndex >= queries.length) return;
+        const query = encodeURIComponent(queries[queryIndex]);
+        fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=jp&bounded=1&viewbox=${viewbox}&q=${query}`)
+        .then(response => response.ok ? response.json() : [])
+        .then(results => {
+          const result = results.find(item => {
+            const displayName = item.display_name || '';
+            return displayName.includes('青森市') && !displayName.includes('弘前市');
+          });
+          if (!result) {
+            requestGeocode(queryIndex + 1);
+            return;
+          }
+          const latitude = Number(result.lat);
+          const longitude = Number(result.lon);
+          if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+            addShelterMarker(shelter, latitude, longitude, redPinIcon);
+          }
+        })
+        .catch(() => {});
+      }
+
+      requestGeocode(0);
+    }
+
+    function addShelterMarkers() {
+      const redPinIcon = L.divIcon({
+        className: 'red-shelter-pin',
+        html: '<span></span>',
+        iconSize: [18, 24],
+        iconAnchor: [9, 24],
+        popupAnchor: [0, -24]
+      });
+
+      shelters.forEach(shelter => {
+        const latitude = Number(shelter.latitude ?? shelter.lat);
+        const longitude = Number(shelter.longitude ?? shelter.lng ?? shelter.lon);
+        if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+          addShelterMarker(shelter, latitude, longitude, redPinIcon);
+          return;
+        }
+        geocodeShelter(shelter, redPinIcon);
+      });
+    }
+
+    function updateBoundary() {
+      fetch('https://raw.githubusercontent.com/niiyz/JapanCityGeoJson/master/geojson/02/02201.json')
+        .then(response => {
+          if (!response.ok) throw new Error('boundary fetch failed');
+          return response.json();
+        })
+        .then(geojson => {
+          const boundary = L.geoJSON(geojson, {
+            style: () => ({
+              color: '#172554',
+              weight: 2,
+              opacity: 0.95,
+                        fillColor: currentWarnings.length ? warningFillColor() : 'transparent',
+              fillOpacity: currentWarnings.length ? 0.32 : 0
+            }),
+            onEachFeature: (feature, layer) => layer.bindPopup(renderWarningsPopup())
+          }).addTo(map);
+          map.fitBounds(boundary.getBounds(), { padding: [12, 12] });
+        })
+        .catch(() => {
+          const mapBox = document.getElementById('shelterMap');
+          mapBox.insertAdjacentHTML('beforebegin', '<p class="map-error">市境データを取得できませんでした。</p>');
+        });
+    }
+
     function updateWeatherWarnings() {
         fetch('/api/weather_warnings')
             .then(response => response.json())
             .then(data => {
+          currentWarnings = data.error ? [] : (data.warnings || []);
                 updateWeatherContent(data);
+          updateBoundary();
             })
             .catch(() => {
                 const weatherContent = document.getElementById('weatherContent');
@@ -58,7 +184,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.warnings && data.warnings.length > 0) {
             warningsHtml = '<ul class="warning-list">';
             data.warnings.forEach(warning => {
-                warningsHtml += `<li><span class="dot"></span>${warning.name}（${warning.status}）</li>`;
+              const severityClass = warning.severity === '大' ? 'warning-high' : 'warning-medium';
+                warningsHtml += `<li class="${severityClass}"><span class="dot"></span><span>${warning.name}（${warning.status}）<small>${warning.area_name || '青森市'}</small></span><strong>${warning.severity}</strong></li>`;
             });
             warningsHtml += '</ul>';
         } else {
@@ -73,6 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
     }
 
+    addShelterMarkers();
     updateWeatherWarnings();
     setInterval(updateWeatherWarnings, 600000);
 });

@@ -1,20 +1,58 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>検索結果</h2>
+<section class="results-page">
+  <header class="results-header">
+    <div><h2>避難所検索結果</h2><p>検索地域：{{ conditions.district or conditions.location or '指定なし' }}</p></div>
+    <span class="result-count">{{ results|length }}件</span>
+  </header>
 
-{% if results %}
-  <ul>
-    {% for shelter in results %}
-    <li>{{ shelter.name }}</li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>該当する避難所が見つかりませんでした</p>
-{% endif %}
+  <div class="results-layout">
+    <section class="shelter-results" aria-label="おすすめ避難所一覧">
+      {% if results %}
+        {% for shelter in results %}
+        <article class="shelter-card">
+          <div class="card-heading"><span class="rank">{{ loop.index }}位</span><h3>{{ shelter.name }}</h3><span class="status-tag">{{ shelter.status or '候補' }}</span></div>
+          <div class="score-line"><strong>{{ shelter.score if shelter.score is defined else '未登録' }}</strong><span>おすすめ度 / 100</span></div>
+          <dl class="shelter-facts">
+            <div><dt>距離</dt><dd>{% if shelter.distance_m is defined %}{{ shelter.distance_m }}m{% else %}未登録{% endif %}</dd></div>
+            <div><dt>混雑状況</dt><dd>{{ shelter.crowding or '未登録' }}</dd></div>
+            <div><dt>バリアフリー</dt><dd>{% if shelter.barrier_free is defined %}{{ '対応' if shelter.barrier_free else '未対応' }}{% else %}未登録{% endif %}</dd></div>
+            <div><dt>対応災害</dt><dd>{{ shelter.disasters|join('、') if shelter.disasters is sequence and shelter.disasters is not string else shelter.disasters or shelter.disaster or '未登録' }}</dd></div>
+          </dl>
+          <p class="shelter-address">{{ shelter.address or '住所：未登録' }}</p>
+          <div class="card-actions"><button type="button" class="card-button" data-action="details" data-shelter-id="{{ shelter.id }}">詳細表示</button><button type="button" class="card-button secondary" data-action="route" data-shelter-id="{{ shelter.id }}">避難所までの経路案内</button></div>
+        </article>
+        {% endfor %}
+      {% else %}
+        <div class="empty-results" role="status">検索された避難所は存在しません</div>
+      {% endif %}
+    </section>
+    <div id="resultMap" class="result-map" aria-label="検索結果の避難所地図"></div>
+  </div>
+  <p class="result-links"><a href="/shelter_search{% if request.query_string %}?{{ request.query_string.decode() }}{% endif %}">検索画面に戻る</a> <a href="/">トップページへ戻る</a></p>
+</section>
 
-<p>
-  <a href="/shelter_search">検索画面に戻る</a> |
-  <a href="/">トップページへ戻る</a>
-</p>
-{% endblock %}
+<dialog id="detailsDialog" class="result-dialog" aria-labelledby="detailsTitle"><button type="button" class="dialog-close" data-close-dialog aria-label="閉じる">×</button><h2 id="detailsTitle"></h2><div id="detailsContent"></div></dialog>
+<dialog id="routeDialog" class="result-dialog" aria-labelledby="routeTitle"><button type="button" class="dialog-close" data-close-dialog aria-label="閉じる">×</button><h2 id="routeTitle"></h2><div id="routeContent"></div></dialog>
+
+<style>
+.results-page { max-width: 1120px; margin: 0 auto; }
+.results-header { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 22px; }.results-header h2 { margin-bottom: 6px; color: #0d3f76; }.results-header p { margin: 0; color: #718296; }.result-count { color: #0d3f76; font-size: 20px; font-weight: 700; }
+.results-layout { display: grid; grid-template-columns: minmax(300px, .9fr) minmax(420px, 1.1fr); gap: 24px; align-items: start; }.shelter-results { display: grid; gap: 14px; }.shelter-card { min-height: 250px; padding: 18px; background: #f8fbfd; border: 1px solid #dfe7ee; box-shadow: 0 3px 9px rgba(27,54,82,.08); }.card-heading { display: flex; align-items: center; gap: 9px; min-width: 0; }.card-heading h3 { overflow-wrap: anywhere; margin: 0; color: #1f2d3d; font-size: 18px; }.rank { flex: 0 0 auto; color: #0a5ea8; font-weight: 800; }.status-tag { flex: 0 0 auto; margin-left: auto; padding: 4px 7px; color: #0d3f76; background: #dcecf7; font-size: 12px; font-weight: 700; }
+.score-line { display: flex; align-items: baseline; gap: 6px; margin: 14px 0 10px; color: #718296; }.score-line strong { color: #b42318; font-size: 26px; }.shelter-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }.shelter-facts div { padding: 8px; background: #fff; }.shelter-facts dt { color: #718296; font-size: 12px; }.shelter-facts dd { overflow-wrap: anywhere; margin: 3px 0 0; color: #1f2d3d; font-weight: 700; }.shelter-address { overflow-wrap: anywhere; min-height: 20px; color: #53677b; font-size: 13px; }.card-actions { display: flex; flex-wrap: wrap; gap: 8px; }.card-button { min-height: 40px; padding: 8px 12px; border: 1px solid #0a5ea8; background: #0a5ea8; color: #fff; font-weight: 700; cursor: pointer; }.card-button.secondary { background: #fff; color: #0a5ea8; }.result-map { position: sticky; top: 16px; height: 650px; border: 1px solid #b7c7d4; background: #dfeef7; }.empty-results { padding: 28px 18px; border: 1px solid #f1c4c1; color: #b42318; background: #fff8f7; font-weight: 700; }.result-links { display: flex; gap: 18px; margin-top: 22px; }.result-dialog { width: min(520px, calc(100% - 32px)); padding: 24px; border: 1px solid #b7c7d4; color: #1f2d3d; }.result-dialog::backdrop { background: rgba(13,63,118,.35); }.dialog-close { float: right; border: 0; background: transparent; color: #0d3f76; font-size: 28px; cursor: pointer; }.dialog-facts { display: grid; gap: 8px; padding: 0; }.dialog-facts dt { color: #718296; font-size: 13px; }.dialog-facts dd { margin: 0; overflow-wrap: anywhere; }.route-image { max-width: 100%; height: auto; }
+@media (max-width: 760px) { .results-layout { grid-template-columns: 1fr; }.result-map { position: static; height: 360px; grid-row: 1; }.results-header { align-items: start; } } @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
++</style>
++
++<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
++<script>
++document.addEventListener('DOMContentLoaded', function () {
++  const shelters = {{ results | tojson }}; const mapElement = document.getElementById('resultMap'); const detailsDialog = document.getElementById('detailsDialog'); const routeDialog = document.getElementById('routeDialog');
++  const byId = id => shelters.find(shelter => String(shelter.id) === String(id)); const value = item => item === undefined || item === null || item === '' ? '未登録' : String(item);
++  function details(shelter) { document.getElementById('detailsTitle').textContent = value(shelter.name); const content = document.getElementById('detailsContent'); content.replaceChildren(); const description = document.createElement('p'); description.textContent = value(shelter.description); const facts = document.createElement('dl'); facts.className = 'dialog-facts'; [['住所', shelter.address], ['ペット可', shelter.pet_allowed], ['車いす対応', shelter.barrier_free], ['多目的トイレ', shelter.multifunctional_toilet], ['備蓄品', shelter.supplies]].forEach(([label, item]) => { const term = document.createElement('dt'); term.textContent = label; const detail = document.createElement('dd'); detail.textContent = value(item); facts.append(term, detail); }); content.append(description, facts); detailsDialog.showModal(); }
++  function route(shelter) { document.getElementById('routeTitle').textContent = `${value(shelter.name)}への経路案内`; const content = document.getElementById('routeContent'); content.replaceChildren(); if (shelter.route_image_url) { const image = document.createElement('img'); image.className = 'route-image'; image.src = shelter.route_image_url; image.alt = `${value(shelter.name)}までの経路`; content.append(image); } else { const message = document.createElement('p'); message.textContent = '経路案内は利用できません。住所をご確認ください。'; content.append(message); } routeDialog.showModal(); }
++  document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', function () { const shelter = byId(this.dataset.shelterId); if (shelter) this.dataset.action === 'details' ? details(shelter) : route(shelter); })); document.querySelectorAll('[data-close-dialog]').forEach(button => button.addEventListener('click', function () { this.closest('dialog').close(); })); document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); })); document.addEventListener('keydown', event => { if (event.key === 'Escape') document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close()); });
++  if (!mapElement || typeof L === 'undefined') return; const map = L.map(mapElement).setView([40.8244, 140.7400], 10); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map); const bounds = []; shelters.forEach((shelter, index) => { const latitude = Number(shelter.latitude ?? shelter.lat); const longitude = Number(shelter.longitude ?? shelter.lng ?? shelter.lon); if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return; bounds.push([latitude, longitude]); L.marker([latitude, longitude]).addTo(map).bindPopup(`<strong>${index + 1}位 ${value(shelter.name)}</strong><br>${value(shelter.address)}`); }); if (bounds.length > 1) map.fitBounds(bounds, { padding: [20, 20] });
++});
++</script>
++{% endblock %}

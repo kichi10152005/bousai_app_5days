@@ -1,108 +1,43 @@
 [
   {
     "id": 1,
-    "name": "御所見小学校"
+    "name": "既存",
+    "city": "青森市"
   },
   {
     "id": 2,
-    "name": "片瀬小学校"
-  },
-  {
-    "id": 5,
-    "name": "鵠洋小学校"
-  },
-  {
-    "id": 6,
-    "name": "NTTデータ関西"
-  },
-  {
-    "id": 7,
-    "name": "新しい避難所",
-    "address": "青森市大字本町1-1",
-    "capacity": "200人",
-    "equipment": "トイレ、非常用電源",
-    "disaster": "洪水, 地震",
-    "image": "https://example.com/image.jpg"
-  },
-  {
-    "id": 8,
-    "name": "テスト避難所",
-    "address": "青森市",
+    "name": "新設避難所",
+    "city": "青森市",
+    "address": "青森県青森市中央2-17-13",
+    "latitude": 40.8186633,
+    "longitude": 140.7490801,
     "capacity": "100人",
-    "equipment": "トイレ",
-    "disaster": "地震",
-    "image": "/static/uploads/sample.png"
-  },
-  {
-    "id": 9,
-    "name": "テスト避難所",
-    "address": "青森市",
-    "capacity": "100人",
-    "equipment": "バリアフリー設備, 多言語対応",
+    "equipment": "多言語対応",
     "disaster": "地震",
     "image": ""
   },
   {
-    "id": 10,
-    "name": "テスト避難所",
-    "address": "青森市",
-    "capacity": "100人",
-    "equipment": "バリアフリー設備, その他, フリースペース",
+    "id": 3,
+    "name": "青森市立浦町小学校",
+    "city": "青森市",
+    "address": "青森県青森市中央2-17-13",
+    "latitude": 40.8186633,
+    "longitude": 140.7490801,
+    "capacity": "100",
+    "equipment": "バリアフリー設備",
     "disaster": "地震",
     "image": ""
   },
   {
-    "id": 11,
-    "name": "テスト避難所",
-    "address": "青森市",
-    "capacity": "100人",
-    "equipment": "バリアフリー設備",
-    "disaster": "地震, 津波, 台風",
-    "image": ""
-  },
-  {
-    "id": 12,
-    "name": "テスト避難所",
-    "address": "青森市",
-    "capacity": "100人",
-    "equipment": "バリアフリー設備",
-    "disaster": "地震, その他, 火山噴火",
-    "image": ""
-  },
-  {
-    "id": 13,
-    "name": "災害テスト",
-    "address": "青森市",
-    "capacity": "100人",
-    "equipment": "バリアフリー設備",
-    "disaster": "地震, その他, 火山噴火",
-    "image": ""
-  },
-  {
-    "id": 14,
-    "name": "NTTデータ関西",
-    "address": "ああああ",
+    "id": 4,
+    "name": "青森市立北小学校",
+    "city": "青森市",
+    "address": "青森県青森市清水浜元181",
+    "latitude": 40.9009381,
+    "longitude": 140.6743075,
     "capacity": "1000",
-    "equipment": "ペット対応設備",
-    "disaster": "津波",
-    "image": ""
-  },
-  {
-    "id": 15,
-    "name": "NTTデータ",
-    "address": "大阪府大阪市北区堂島3-1-21",
-    "capacity": "約１０００人",
-    "equipment": "バリアフリー設備, 多言語対応",
-    "disaster": "地震, 津波, 土砂災害",
-    "image": ""
-  },
-  {
-    "id": 16,
-    "name": "NTTデータ関西",
-    "address": "大阪府大阪市北区堂島3-1-21",
-    "capacity": "100人",
-    "equipment": "バリアフリー設備, 多言語対応",
-    "disaster": "地震, 津波, 土砂災害",
+    "equipment": "バリアフリー設備, ペット対応設備, 多言語対応",
+    "disaster": "地震, 津波, 土砂災害, 河川氾濫, 積雪災害, 台風",
     "image": ""
   }
 ]
