@@ -1,22 +1,5 @@
 [
   {
-    "id": 1,
-    "name": "既存",
-    "city": "青森市"
-  },
-  {
-    "id": 2,
-    "name": "新設避難所",
-    "city": "青森市",
-    "address": "青森県青森市中央2-17-13",
-    "latitude": 40.8186633,
-    "longitude": 140.7490801,
-    "capacity": "100人",
-    "equipment": "多言語対応",
-    "disaster": "地震",
-    "image": ""
-  },
-  {
     "id": 3,
     "name": "青森市立浦町小学校",
     "city": "青森市",
@@ -26,7 +9,8 @@
     "capacity": "100",
     "equipment": "バリアフリー設備",
     "disaster": "地震",
-    "image": ""
+    "image": "",
+    "distance_m": 488
   },
   {
     "id": 4,
@@ -38,6 +22,7 @@
     "capacity": "1000",
     "equipment": "バリアフリー設備, ペット対応設備, 多言語対応",
     "disaster": "地震, 津波, 土砂災害, 河川氾濫, 積雪災害, 台風",
-    "image": ""
+    "image": "",
+    "distance_m": 10626
   }
 ]

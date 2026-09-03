@@ -5,6 +5,7 @@ import json
 import os
 import urllib.request
 import urllib.parse
+from math import asin, cos, radians, sin, sqrt
 from datetime import datetime, timedelta, timezone
 
 # app.py はプロジェクト直下に置く。
@@ -32,6 +33,9 @@ AREA_NAME = "青森市"
 # 青森市のJMA市区町村コード（青森県青森市）
 AREA_CODE = "0220100"
 CITY_NAME = "青森市"
+CITY_HALL_ADDRESS = "青森市中央1-22-5"
+CITY_HALL_LATITUDE = 40.8227338
+CITY_HALL_LONGITUDE = 140.7469235
 
 WARNING_URL = (
     f"https://www.jma.go.jp/bosai/warning/data/r8/{PREFECTURE_CODE}.json"
@@ -160,6 +164,8 @@ def geocode_shelter(shelter_name, address):
 # 認証関連の設定とヘルパー関数
 def is_safe_url(target):
     """リダイレクト先URLが安全かどうかチェック"""
+    if not target or not target.startswith('/') or target.startswith('//'):
+        return False
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
@@ -170,7 +176,7 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if not session.get('logged_in'):
             # 現在のURLをnextパラメータとしてログイン画面にリダイレクト
-            return redirect(url_for('login', next=request.url))
+            return redirect(url_for('login', next=request.full_path.rstrip('?')))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -238,16 +244,40 @@ def search_shelters(name='', location='', equipment=None, hazards=None, district
 
 
 def shelter_sort_key(shelter):
-    """欠損や不正なスコア・距離でも安定して並べ替える"""
+    """距離が近い順に並べ、欠損や不正な距離は末尾に置く"""
     try:
-        score = float(shelter.get('score', 0) or 0)
-    except (TypeError, ValueError):
-        score = 0
-    try:
-        distance = float(shelter.get('distance_m', float('inf')) or float('inf'))
+        raw_distance = shelter.get('distance_m')
+        distance = float('inf') if raw_distance in (None, '') else float(raw_distance)
     except (TypeError, ValueError):
         distance = float('inf')
-    return -score, distance
+    return distance
+
+
+def distance_from_city_hall(shelter):
+    """青森市役所を基準に避難所までの直線距離をメートルで求める"""
+    try:
+        latitude = radians(float(shelter['latitude']))
+        longitude = radians(float(shelter['longitude']))
+    except (KeyError, TypeError, ValueError):
+        return None
+    city_hall_latitude = radians(CITY_HALL_LATITUDE)
+    city_hall_longitude = radians(CITY_HALL_LONGITUDE)
+    latitude_delta = latitude - city_hall_latitude
+    longitude_delta = longitude - city_hall_longitude
+    haversine = (
+        sin(latitude_delta / 2) ** 2
+        + cos(city_hall_latitude) * cos(latitude) * sin(longitude_delta / 2) ** 2
+    )
+    return round(6371000 * 2 * asin(sqrt(haversine)))
+
+
+def add_distances_from_city_hall(results):
+    """検索結果に青森市役所からの距離を付加する"""
+    for shelter in results:
+        distance = distance_from_city_hall(shelter)
+        if distance is not None:
+            shelter['distance_m'] = distance
+    return results
 
 
 def warning_severity(code):
@@ -385,6 +415,7 @@ def login():
             None
         )
         if username:
+            session.clear()
             session['logged_in'] = True
             session['username'] = username
             # ログイン成功後は指定されたページにリダイレクト
@@ -498,15 +529,59 @@ def shelter_search():
 # 全施設一覧ページ
 @app.route('/all_shelters')
 def all_shelters():
-    return render_template('search_results.html', results=filter_shelters())
+    results = add_distances_from_city_hall(filter_shelters())
+    results.sort(key=shelter_sort_key)
+    return render_template(
+        'search_results.html',
+        results=results,
+        conditions={'district': '', 'location': ''}
+    )
 
 
 # 指示ボード：住民向けの指示を一覧で確認する
-@app.route('/board')
+@app.route('/board', methods=['GET', 'POST'])
 @login_required
 def board():
-    resident_instructions = [i for i in instructions if i.get('target') == '住民']
-    return render_template('board.html', instructions=resident_instructions)
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'delete':
+            try:
+                instruction_id = int(request.form.get('id', ''))
+            except ValueError:
+                instruction_id = None
+            instructions[:] = [item for item in instructions if item.get('id') != instruction_id]
+            save_instructions()
+            return redirect(url_for('board'))
+
+        content = request.form.get('content', '').strip()
+        district = request.form.get('district', '').strip()
+        priority = request.form.get('priority', '').strip()
+        posted_at = request.form.get('posted_at', '').strip()
+        valid_districts = {'A地区', 'B地区', 'C地区'}
+        valid_priorities = {'大', '中', '小'}
+        if not content or district not in valid_districts or priority not in valid_priorities:
+            return render_template(
+                'board.html', instructions=sorted(instructions, key=lambda item: item.get('posted_at', item.get('created_at', '')), reverse=True),
+                error='発信内容、対象地区、重要度を正しく入力してください。',
+                posted_at=posted_at, district=district, priority=priority, content=content
+            )
+        now = get_japan_time()
+        instruction_id = max((item.get('id', 0) for item in instructions), default=0) + 1
+        instructions.append({
+            'id': instruction_id, 'target': '住民', 'content': content,
+            'district': district, 'priority': priority, 'shelter': '',
+            'status': '新規', 'created_at': now, 'updated_at': now,
+            'posted_at': posted_at or datetime.now(JST).strftime('%Y-%m-%dT%H:%M')
+        })
+        save_instructions()
+        return redirect(url_for('board'))
+
+    resident_instructions = sorted(instructions, key=lambda item: item.get('posted_at', item.get('created_at', '')), reverse=True)
+    return render_template(
+        'board.html',
+        instructions=resident_instructions,
+        posted_at=datetime.now(JST).strftime('%Y-%m-%dT%H:%M')
+    )
 
 # 検索結果ページ：templates/search_results.html を返す
 @app.route('/search_results')
@@ -522,8 +597,26 @@ def search_results():
         conditions['name'], conditions['location'],
         conditions['equipment'], conditions['hazard'], conditions['district']
     )
+    add_distances_from_city_hall(results)
     results.sort(key=shelter_sort_key)
     return render_template('search_results.html', results=results, conditions=conditions)
+
+
+@app.route('/shelter_delete', methods=['POST'])
+@login_required
+def shelter_delete():
+    """管理者が検索結果から指定した避難所を削除する"""
+    try:
+        shelter_id = int(request.form.get('id', ''))
+    except (TypeError, ValueError):
+        shelter_id = None
+
+    shelters[:] = [shelter for shelter in shelters if shelter.get('id') != shelter_id]
+    save_shelters()
+    return_to = request.form.get('return_to', '')
+    if not is_safe_url(return_to):
+        return_to = url_for('search_results')
+    return redirect(return_to)
 
 # JSON API：/shelters?district=地区名
 @app.route('/shelters', methods=['GET'])
