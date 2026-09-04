@@ -400,15 +400,24 @@ def index():
             except ValueError:
                 return datetime.min.replace(tzinfo=JST)
 
+    selected_district = request.args.get('district', '').strip()
+    selected_disaster_type = request.args.get('disaster_type', '').strip()
     resident_notices = sorted(
-        (i for i in instructions if i.get('target') == '住民'),
+        (
+            i for i in instructions
+            if i.get('target') == '住民'
+            and (not selected_district or i.get('district') == selected_district)
+            and (not selected_disaster_type or i.get('disaster_type') == selected_disaster_type)
+        ),
         key=notice_datetime,
         reverse=True
     )
     return render_template(
         'index.html',
         resident_notices=resident_notices,
-        shelters=filter_shelters()
+        shelters=filter_shelters(),
+        selected_district=selected_district,
+        selected_disaster_type=selected_disaster_type
     )
 
 # ホーム画面からの住民情報を受け付ける
@@ -546,7 +555,7 @@ def shelter_register():
 
         latitude, longitude = geocode_shelter(shelter_name, shelter_address)
         shelter_id = max((s.get('id', 0) for s in shelters), default=0) + 1
-        shelters.append({
+        new_shelter = {
             'id': shelter_id,
             'name': shelter_name,
             'furigana': shelter_furigana,
@@ -558,7 +567,11 @@ def shelter_register():
             'equipment': shelter_equipment,
             'disaster': shelter_disaster,
             'image': shelter_image,
-        })
+        }
+        distance = distance_from_city_hall(new_shelter)
+        if distance is not None:
+            new_shelter['distance_m'] = distance
+        shelters.append(new_shelter)
         save_shelters()
 
         return render_template(
@@ -584,11 +597,14 @@ def shelter_search():
         search_conditions['equipment'],
         search_conditions['hazard']
     ) if request.args else None
+    if results is not None:
+        add_distances_from_city_hall(results)
+    map_shelters = add_distances_from_city_hall(filter_shelters())
     return render_template(
         'shelter_search.html',
         conditions=search_conditions,
         results=results,
-        shelters=filter_shelters()
+        shelters=map_shelters
     )
 
 # 全施設一覧ページ
@@ -622,23 +638,29 @@ def board():
         title = request.form.get('title', '').strip()
         district = request.form.get('district', '').strip()
         priority = request.form.get('priority', '').strip()
+        disaster_type = request.form.get('disaster_type', '').strip()
         valid_districts = {'東地区', '中心地区', '南地区', '西地区', '浪岡地区'}
+        valid_disaster_types = {'地震', '河川氾濫', '津波', '積雪災害', '土砂災害', '台風', 'その他'}
         valid_priorities = {'大', '中', '小'}
-        if not title or not content or district not in valid_districts or priority not in valid_priorities:
+        if (not title or not content or district not in valid_districts
+            or disaster_type not in valid_disaster_types
+            or priority not in valid_priorities):
             return render_template(
                 'board.html', instructions=sorted(instructions, key=lambda item: item.get('posted_at', item.get('created_at', '')), reverse=True),
                 resident_reports=sorted(
                     (item for item in instructions if item.get('target') == '住民からの情報'),
                     key=lambda item: item.get('posted_at', item.get('created_at', '')), reverse=True
                 ),
-                error='お知らせのタイトル、発信内容、対象地区、重要度を正しく入力してください。',
-                title=title, district=district, priority=priority, content=content
+                error='お知らせのタイトル、発信内容、対象地区、災害、重要度を正しく入力してください。',
+                title=title, district=district, disaster_type=disaster_type,
+                priority=priority, content=content
             )
         now = get_japan_time()
         instruction_id = max((item.get('id', 0) for item in instructions), default=0) + 1
         instructions.append({
             'id': instruction_id, 'target': '住民', 'title': title, 'content': content,
-            'district': district, 'priority': priority, 'shelter': '',
+            'district': district, 'disaster_type': disaster_type,
+            'priority': priority, 'shelter': '',
             'status': '新規', 'created_at': now, 'updated_at': now,
             'posted_at': now
         })

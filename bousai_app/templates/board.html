@@ -14,6 +14,7 @@
     <label class="board-content-field">発信内容<br><textarea name="content" rows="4" required>{{ content or '' }}</textarea></label>
     <label>重要度<br><select name="priority" required><option value="">選択してください</option>{% for item in ['大', '中', '小'] %}<option value="{{ item }}" {% if priority == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
     <label>対象地区<br><select name="district" required><option value="">選択してください</option>{% for item in ['東地区', '中心地区', '南地区', '西地区', '浪岡地区'] %}<option value="{{ item }}" {% if district == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+    <label>災害<br><select name="disaster_type" required><option value="">選択してください</option>{% for item in ['地震', '河川氾濫', '津波', '積雪災害', '土砂災害', '台風', 'その他'] %}<option value="{{ item }}" {% if disaster_type == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
   </div>
   <button type="submit">投稿する</button>
 </form>

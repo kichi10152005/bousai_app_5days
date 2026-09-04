@@ -208,6 +208,42 @@ html.senior-mode td {
   padding: 18px 22px 20px;
 }
 
+.notice-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+  margin: -2px 0 8px;
+  padding: 10px;
+  background: rgba(234, 240, 244, 0.7);
+}
+
+.notice-filter label {
+  display: grid;
+  gap: 4px;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.notice-filter select {
+  min-width: 130px;
+  padding: 7px 9px;
+  border: 1px solid #b7c7d4;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.notice-filter button {
+  padding: 8px 14px;
+  border: 0;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .notice-list {
   list-style: none;
   padding: 0;
@@ -249,6 +285,16 @@ html.senior-mode td {
 }
 
 @media (max-width: 640px) {
+  .notice-filter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .notice-filter select,
+  .notice-filter button {
+    width: 100%;
+  }
+
   .notice-details {
     grid-template-columns: 1fr;
   }

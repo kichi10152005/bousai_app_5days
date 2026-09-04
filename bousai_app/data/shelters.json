@@ -39,18 +39,6 @@
     "distance_m": 1052
   },
   {
-    "id": 6,
-    "name": "弘前大学",
-    "city": "青森市",
-    "address": "青森県弘前市文京町1",
-    "latitude": null,
-    "longitude": null,
-    "capacity": "0AB",
-    "equipment": "その他, ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ",
-    "disaster": "その他, 獣害",
-    "image": "/static/uploads/青森市立図書館.webp"
-  },
-  {
     "id": 7,
     "name": "青森市立南中学校",
     "furigana": "あおもりしりつみなみちゅうがっこう",
@@ -61,6 +49,21 @@
     "capacity": "2000",
     "equipment": "バリアフリー設備, その他, 幼児施設",
     "disaster": "地震, 津波, その他, 獣害",
-    "image": ""
+    "image": "",
+    "distance_m": 1748
+  },
+  {
+    "id": 8,
+    "name": "青森市浪岡中央公民館",
+    "furigana": "あおもりしなみおかちゅうおうこうみんかん",
+    "city": "青森市",
+    "address": "青森市浪岡大字浪岡稲村101-1",
+    "latitude": 40.708187,
+    "longitude": 140.593262,
+    "capacity": "300",
+    "equipment": "バリアフリー設備, 多言語対応, その他(介護設備)",
+    "disaster": "地震, 津波, その他(洪水)",
+    "image": "/static/uploads/浪岡中央公民館.jpg",
+    "distance_m": 18158
   }
 ]

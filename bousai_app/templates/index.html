@@ -42,6 +42,21 @@
 
     <div class="home-panel notices-panel">
       <div class="section-title"><span class="icon">📢</span><span>住民向けのお知らせ</span></div>
+      <form class="notice-filter" method="get" action="/">
+        <label>対象地区
+          <select name="district">
+            <option value="">すべて</option>
+            {% for item in ['東地区', '中心地区', '南地区', '西地区', '浪岡地区'] %}<option value="{{ item }}" {% if selected_district == item %}selected{% endif %}>{{ item }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>災害
+          <select name="disaster_type">
+            <option value="">すべて</option>
+            {% for item in ['地震', '河川氾濫', '津波', '積雪災害', '土砂災害', '台風', 'その他'] %}<option value="{{ item }}" {% if selected_disaster_type == item %}selected{% endif %}>{{ item }}</option>{% endfor %}
+          </select>
+        </label>
+        <button type="submit">絞り込む</button>
+      </form>
       {% if resident_notices %}
         <ul class="notice-list">
           {% for notice in resident_notices %}

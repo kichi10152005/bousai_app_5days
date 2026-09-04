@@ -160,7 +160,7 @@
 		{% if results %}
 			<ul>
 				{% for shelter in results %}
-					<li>{{ shelter.name }}</li>
+					<li>{{ shelter.name }}（青森市役所からの距離：{% if shelter.distance_m is defined and shelter.distance_m is not none %}{{ shelter.distance_m }}m{% else %}未登録{% endif %}）</li>
 				{% endfor %}
 			</ul>
 		{% else %}
@@ -204,9 +204,10 @@ document.addEventListener('DOMContentLoaded', function () {
 	function addShelterMarker(shelter, latitude, longitude, redPinIcon) {
 		const shelterName = document.createElement('strong');
 		shelterName.textContent = shelter.name || '避難所';
+		const distance = shelter.distance_m === undefined || shelter.distance_m === null ? '未登録' : `${shelter.distance_m}m`;
 		L.marker([latitude, longitude], { icon: redPinIcon })
 			.addTo(map)
-			.bindPopup(shelterName);
+			.bindPopup(`${shelterName.outerHTML}<br>青森市役所からの距離：${distance}`);
 	}
 
 	function geocodeShelter(shelter, redPinIcon) {
